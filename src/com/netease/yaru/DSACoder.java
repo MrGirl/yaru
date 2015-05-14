@@ -11,16 +11,20 @@ import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
+import java.security.SignatureException;
 import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.DSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 
 public abstract class DSACoder extends Coder {
@@ -77,6 +81,30 @@ public abstract class DSACoder extends Coder {
 
 		return encryptBASE64(signature.sign());
 	}
+	
+//	public static byte[] deSign(String data,String publicKey) throws Exception{
+//		
+//		// 解密由base64编码的私钥
+//		byte[] keyBytes = decryptBASE64(publicKey);
+//
+//		// 构造X509EncodedKeySpec对象
+//		X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
+//
+//		// KEY_ALGORITHM 指定的加密算法
+//		KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);
+//
+//		// 取私钥匙对象
+//		PublicKey publickey = keyFactory.generatePublic(keySpec);
+//
+//		// 用私钥对信息生成数字签名
+//		Signature signature = Signature.getInstance(keyFactory.getAlgorithm());
+//		signature.initSign(publickey);
+//		
+//		byte[] dateByte = DSACoder.decryptBASE64(data);
+//		signature.update(dateByte);
+//
+//		return signature.sign();
+//	}
 
 	/**
 	 * 校验数字签名
@@ -149,6 +177,7 @@ public abstract class DSACoder extends Coder {
 	 * @throws Exception
 	 */
 	public static Map<String, Object> initKey() throws Exception {
+		
 		return initKey(DEFAULT_SEED);
 	}
 
@@ -180,12 +209,34 @@ public abstract class DSACoder extends Coder {
 		return encryptBASE64(key.getEncoded());
 	}
 	
+	public static String generateSeed(String... attributes){
+		String attributeStr = "";
+		for(String attribute :attributes){
+			attributeStr += attribute;
+		}
+		
+		return attributeStr;
+	}
+	
+	
+	public static String generateSeed(Map<String,String> attributes){
+		Set<Map.Entry<String, String>> attributesEntry = attributes.entrySet();
+		String attributeStr = "";
+		for(Map.Entry<String,String> entry:attributesEntry){
+			attributeStr += entry.getValue();
+		}
+		
+		return attributeStr;
+	}
+	
+	
+	
 	public static void main(String args[]) throws Exception{
 		String inputStr = "abc";  
         byte[] data = inputStr.getBytes();  
   
         // 构建密钥  
-        Map<String, Object> keyMap = DSACoder.initKey();  
+        Map<String, Object> keyMap = DSACoder.initKey("zyd"); 
   
         // 获得密钥  
         String publicKey = DSACoder.getPublicKey(keyMap);  
@@ -197,10 +248,20 @@ public abstract class DSACoder extends Coder {
         // 产生签名  
         String sign = DSACoder.sign(data, privateKey);  
         System.err.println("签名:\r" + sign);  
+        
+       
   
         // 验证签名  
         boolean status = DSACoder.verify(data, publicKey, sign);  
         System.err.println("状态:\r" + status);  
+        
+        //获取原始数据
+//        byte[] bytes = DSACoder.deSign(sign, publicKey);
+        
+        
+//        System.err.println("原始数据:\r" + new String(bytes));  
+        
+        System.err.println(DSACoder.generateSeed("1","2"));
 	}
 }
 
