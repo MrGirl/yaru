@@ -7,10 +7,15 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.netease.yaru.utils.FileUtils;
 
 /**
  * @author zyd,cyr
@@ -42,73 +47,87 @@ public class SignData {
 		if(num % 2 == 0){
 			algorithm = "RSA";
 		}
+		DSACoder.ALGORITHM = algorithm;
 		
-		
+		String seedStr = DSACoder.generateSeed(num+"");
+		String md5 = new String(DSACoder.encryptMD5(seedStr.getBytes()));
+        // 构建密钥  
+        Map<String, Object> keyMap = DSACoder.initKey(md5); 
+  
+        // 获得密钥  
+        String publicKey = DSACoder.getPublicKey(keyMap);  
+        String privateKey = DSACoder.getPrivateKey(keyMap);  
+
+
+        
+        /**
+         * 保存密钥，保存在与 当前目录
+         */
+        String pwd = FileUtils.getPwd();
+        String pubFile = pwd+"/"+num+".public";
+        String priFile = pwd+"/"+num+".private";
+        
+        
+        System.err.println("公钥:"+pubFile+"\r" + publicKey);  
+        System.err.println("私钥:" +privateKey+"\r"+ privateKey);  
+        
+        
+        PrintWriter printerpub = null;
+        PrintWriter printerPri = null;
+		try {
+			printerpub = new PrintWriter(new OutputStreamWriter(
+					new FileOutputStream(new File(pubFile))));
+			printerpub.write(publicKey);
+			printerPri = new PrintWriter(new OutputStreamWriter(
+					new FileOutputStream(new File(priFile))));
+			printerPri.write(privateKey);
+		} finally {
+			if (printerpub != null)
+				printerpub.close();
+			if (printerPri != null)
+				printerPri.close();
+		}
 		//**************************提示用户输入要签名的文件名和 私钥名**********************************************
+		Thread.sleep(30);
 		promptSignInput();
 	
 		line = cmd.readLine();
 		
 		String input[] = line.split("[ ]+");
 		String filename = input[0];
-		String privateKey = input[1];
+		String privateKeyName = input[1];
 		
+		
+		String inputStr = FileUtils.readFileContent(filename);
+
+		
+        byte[] data = inputStr.getBytes("UTF-8");  
+        
+        //读取私钥内容
+        inputStr = FileUtils.readFileContent(privateKeyName);
+		privateKey = inputStr;
+		
+        // 产生签名  
+        String sign = DSACoder.sign(data, privateKey);  
+        System.err.println("签名:\r" + sign);  
+		Thread.sleep(30);
+
 		//**************************提示用户输入要验证的签名串和 公钥名**********************************************
 		promptVerifyInput();
 		line = cmd.readLine();
 		input = line.split("[ ]+");
 		String signature = input[0];
-		String publickey = input[1];
+		String publickeyName = input[1];
 		
-//		String seedStr = DSACoder.generateSeed(input);
-//		String md5 = new String(DSACoder.encryptMD5(seedStr.getBytes()));
-//		String inputStr = "";  
-//		BufferedReader reader = null;
-//		try{
-//		reader = new BufferedReader(new InputStreamReader(new FileInputStream(new File(input.get("source")))));
-//		String line = "";
-//		
-//		String lineSep = System.getProperty("line.separator");
-//		while((line=reader.readLine()) != null){
-//			inputStr+=line+lineSep;
-//		}
-//		}catch(Exception e){
-//			e.printStackTrace();
-//		}finally{
-//			if(reader != null)
-//				reader.close();
-//		}
-//		
-//		
-//        byte[] data = inputStr.getBytes("UTF-8");  
-//  
-//        // 构建密钥  
-//        Map<String, Object> keyMap = DSACoder.initKey(md5); 
-//  
-//        // 获得密钥  
-//        String publicKey = DSACoder.getPublicKey(keyMap);  
-//        String privateKey = DSACoder.getPrivateKey(keyMap);  
-//  
-//        System.err.println("公钥:\r" + publicKey);  
-//        System.err.println("私钥:\r" + privateKey);  
-//  
-//        // 产生签名  
-//        String sign = DSACoder.sign(data, privateKey);  
-//        System.err.println("签名:\r" + sign);  
-//        
-//       //***********************************获取原始数据-start*************************************************************
-//        /**
-//         * 获取原始数据
-//         */
-//        byte[] decodedSign = DSACoder.decryptBASE64(sign);
-//        
-//        
-//        //***********************************获取原始数据-end*************************************************************
-//
-//        // 验证签名  
-//        boolean status = DSACoder.verify(data, publicKey, sign);  
-//        System.err.println("状态:\r" + status);  
-//		
+		//读取公钥内容
+		inputStr = FileUtils.readFileContent(publickeyName);
+		publicKey = inputStr;
+		sign=signature;
+		
+        // 验证签名  
+        boolean status = DSACoder.verify(data, publicKey, sign);  
+        System.err.println("状态:\r" + status);  
+		
 		
 	}
 	
@@ -143,36 +162,6 @@ public class SignData {
 		System.out.println("eg:");
 		System.out.println("mysignature mypublic.key");
 		return ;
-	}
-	
-	public static Map<String,String> parseInput(String[] args){
-		
-		Map<String,String> result = new HashMap<String,String>();
-		
-		if(args.length % 2 != 0){
-			result.put("error", "param count is wrong!");
-			return result;
-		}
-		
-		for(int i=0;i<args.length-1;i++){
-			if(args[i].trim().equals("-u")||args[i].trim().equals("--username")){
-				result.put("username", args[i+1].trim());
-			}
-			if(args[i].trim().equals("-p")||args[i].trim().equals("--password")){
-				result.put("password", args[i+1].trim());
-			}
-			if(args[i].trim().equals("-c")||args[i].trim().equals("--code")){
-				result.put("code", args[i+1].trim());
-			}
-			if(args[i].trim().equals("-t")||args[i].trim().equals("--tel")){
-				result.put("tel", args[i+1].trim());
-			}
-		}
-		
-		//get source and dest
-		result.put("source", args[args.length-2].trim());
-		result.put("dest", args[args.length-1].trim());
-		return result;
 	}
 
 }
