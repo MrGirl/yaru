@@ -39,7 +39,7 @@ public class FileUtils {
 			inputStr+=line+lineSep;
 		}
 		}catch(Exception e){
-			e.printStackTrace();
+			return inputStr;
 		}finally{
 			if(reader != null)
 				reader.close();

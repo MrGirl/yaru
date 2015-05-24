@@ -35,6 +35,7 @@ public class ZydTest {
 
 		System.out.println( System.getProperty("java.class.path")); 
 
+		System.out.println(File.separatorChar);
 		
 		
 	}
