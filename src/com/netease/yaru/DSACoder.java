@@ -11,15 +11,12 @@ import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
-import java.security.SignatureException;
 import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.DSAPublicKey;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.HashMap;
@@ -29,7 +26,7 @@ import java.util.Set;
 
 public abstract class DSACoder extends Coder {
 
-	public static final String ALGORITHM = "DSA";
+	public static  String ALGORITHM = "DSA";
 
 	/**
 	 * 默认密钥字节数
@@ -73,9 +70,16 @@ public abstract class DSACoder extends Coder {
 
 		// 取私钥匙对象
 		PrivateKey priKey = keyFactory.generatePrivate(pkcs8KeySpec);
-
+		
+		//decide the signature algorithm
+		String signatureAlgorithm = null;
+		if(DSACoder.ALGORITHM.equals("RSA"))
+			signatureAlgorithm = "SHA1WithRSA";
+		if(DSACoder.ALGORITHM.equals("DSA"))
+			signatureAlgorithm = keyFactory.getAlgorithm();
+		
 		// 用私钥对信息生成数字签名
-		Signature signature = Signature.getInstance(keyFactory.getAlgorithm());
+		Signature signature = Signature.getInstance(signatureAlgorithm);
 		signature.initSign(priKey);
 		signature.update(data);
 
@@ -135,7 +139,14 @@ public abstract class DSACoder extends Coder {
 		// 取公钥匙对象
 		PublicKey pubKey = keyFactory.generatePublic(keySpec);
 
-		Signature signature = Signature.getInstance(keyFactory.getAlgorithm());
+		//decide the signature algorithm
+		String signatureAlgorithm = null;
+		if(DSACoder.ALGORITHM.equals("RSA"))
+			signatureAlgorithm = "SHA1WithRSA";
+		if(DSACoder.ALGORITHM.equals("DSA"))
+			signatureAlgorithm = keyFactory.getAlgorithm();
+		
+		Signature signature = Signature.getInstance(signatureAlgorithm);
 		signature.initVerify(pubKey);
 		signature.update(data);
 
@@ -160,8 +171,8 @@ public abstract class DSACoder extends Coder {
 
 		KeyPair keys = keygen.genKeyPair();
 
-		DSAPublicKey publicKey = (DSAPublicKey) keys.getPublic();
-		DSAPrivateKey privateKey = (DSAPrivateKey) keys.getPrivate();
+		PublicKey publicKey =  keys.getPublic();
+		PrivateKey privateKey =  keys.getPrivate();
 
 		Map<String, Object> map = new HashMap<String, Object>(2);
 		map.put(PUBLIC_KEY, publicKey);
@@ -235,7 +246,8 @@ public abstract class DSACoder extends Coder {
 		String inputStr = "abc";  
         byte[] data = inputStr.getBytes();  
   
-        // 构建密钥  
+        // 构建密钥  ,密码种子为"zyd"
+        DSACoder.ALGORITHM="RSA";
         Map<String, Object> keyMap = DSACoder.initKey("zyd"); 
   
         // 获得密钥  
@@ -254,13 +266,7 @@ public abstract class DSACoder extends Coder {
         // 验证签名  
         boolean status = DSACoder.verify(data, publicKey, sign);  
         System.err.println("状态:\r" + status);  
-        
-        //获取原始数据
-//        byte[] bytes = DSACoder.deSign(sign, publicKey);
-        
-        
-//        System.err.println("原始数据:\r" + new String(bytes));  
-        
+                
         System.err.println(DSACoder.generateSeed("1","2"));
 	}
 }
