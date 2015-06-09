@@ -150,8 +150,14 @@ public abstract class DSACoder extends Coder {
 		signature.initVerify(pubKey);
 		signature.update(data);
 
+		boolean isTrue = false;
+		try{
+			isTrue = signature.verify(decryptBASE64(sign));
+		}catch(Exception e){
+			isTrue = false;
+		}
 		// 验证签名是否正常
-		return signature.verify(decryptBASE64(sign));
+		return isTrue;
 	}
 
 	/**
